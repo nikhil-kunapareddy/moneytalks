@@ -199,6 +199,64 @@ Tool configuration is in `pyproject.toml`.
 
 ---
 
+## Contributing
+
+We use a **Git Flow-lite** branching model:
+
+```
+main          ← stable, production-ready
+└── dev       ← integration branch; all features merge here first
+    ├── feature/backend-*
+    └── feature/frontend-*
+```
+
+### Branching rules
+
+- Always branch off `dev`, never directly off `main`
+- Use the prefixes below to keep the branch list organised:
+
+| Work | Branch prefix | Example |
+|---|---|---|
+| Backend (parser, DB, API) | `feature/backend-` | `feature/backend-multi-card-support` |
+| Frontend (UI, dashboards) | `feature/frontend-` | `feature/frontend-spending-trends` |
+| Bug fix | `fix/` | `fix/amex-parser-date-format` |
+| Refactor | `refactor/` | `refactor/categorizer-rules` |
+
+### Workflow
+
+```bash
+# 1. Start from an up-to-date dev branch
+git checkout dev && git pull origin dev
+
+# 2. Create your feature branch
+git checkout -b feature/backend-your-feature
+
+# 3. Commit your changes
+git add <files>
+git commit -m "feat(backend): short description of change"
+
+# 4. Push and open a PR into dev
+git push -u origin feature/backend-your-feature
+```
+
+Open a pull request targeting `dev`. Once `dev` is stable and tested, it is merged into `main` via a separate PR.
+
+### Commit message style
+
+```
+<type>(<scope>): <short description>
+
+Types : feat | fix | refactor | docs | chore
+Scopes: backend | frontend | parser | db | cli | config
+```
+
+Examples:
+- `feat(backend): add REST API endpoint for transactions`
+- `feat(frontend): add monthly spending bar chart`
+- `fix(parser): handle Amex statements with foreign currency charges`
+
+---
+
 ## Supported Statements
 
 | Card | Status |
