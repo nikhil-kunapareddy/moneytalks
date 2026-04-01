@@ -1,0 +1,28 @@
+[project]
+name = "moneytalks"
+version = "0.1.0"
+description = "CLI tool for parsing and visualising American Express credit card PDF statements"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "pdfplumber>=0.11",
+    "pandas>=2.2",
+    "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
+    "plotly>=5.24",
+    "click>=8.1",
+    "python-dotenv>=1.0",
+]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+known_first_party = ["src"]
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
