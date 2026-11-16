@@ -10,10 +10,19 @@ Categorisation priority:
 import re
 from typing import Optional
 
-from config import CATEGORY_RULES
+from config import CATEGORY_RULES, MERCHANT_ALIASES
 
-# Prefixes injected by Apple Pay or payment intermediaries.
-_STRIP_PREFIXES: tuple[str, ...] = ("AplPay ", "IC* ", "TST* ")
+# Prefixes injected by Apple Pay or payment intermediaries. They can be
+# chained, e.g. "AplPay TST* FUEL AMERICA".
+_STRIP_PREFIXES: tuple[str, ...] = ("AplPay ", "IC* ", "TST* ", "SQ *")
+
+# Opaque IDs used in place of a merchant name (UUID-like).
+_HEX_ID = re.compile(r"^[0-9A-F]{8}-[0-9A-F]{4}-", re.I)
+# Reference codes after an asterisk: "AIRBNB * HMKC9SRB2A", "VIATOR *IT-175...".
+_REFERENCE = re.compile(r"\s*\*.*$")
+# Numeric codes glued to the name: "MBTA-550013128487".
+_CODE_SUFFIX = re.compile(r"-\d{4,}\b")
+_VOWEL = re.compile(r"[AEIOUY]", re.I)
 
 # Applied sequentially after prefix removal to strip trailing noise.
 # Order matters: state code must be removed before URL so that
@@ -44,28 +53,63 @@ def clean_merchant(description: str) -> str:
 
     Examples::
 
-        "AplPay UBER EATS         HTTPS://HELP.UBER.COM CA" → "UBER EATS"
-        "IC* COSTCO BY INSTACAR   SAN FRANCISCO  CA"        → "COSTCO BY INSTACAR"
-        "AMAZON MARKETPLACE NA PA AMZN.COM/BILL WA"         → "AMAZON MARKETPLACE NA PA"
+        "AplPay UBER EATS         HTTPS://HELP.UBER.COM CA" → "Uber Eats"
+        "AplPay STAR OSCO 3588 3588 BOSTON       MA"        → "Star Osco"
+        "AplPay MBTA-550013128487 LOCID1 BOSTON  MA"        → "MBTA"
+        "AplPay 7-ELEVEN 37526 00073752601 BOSTON MA"       → "7-Eleven"
+        "AMAZON MARKETPLACE NA PA AMZN.COM/BILL WA"         → "Amazon"
     """
-    name = description
+    upper = description.upper()
+    for keyword, alias in MERCHANT_ALIASES.items():
+        if keyword.upper() in upper:
+            return alias
 
-    # 1. Remove payment-intermediary prefix.
-    for prefix in _STRIP_PREFIXES:
-        if name.startswith(prefix):
-            name = name[len(prefix):]
-            break
+    name = description.strip()
+
+    # 1. Remove payment-intermediary prefixes (possibly chained).
+    stripped = True
+    while stripped:
+        stripped = False
+        for prefix in _STRIP_PREFIXES:
+            if name.startswith(prefix):
+                name = name[len(prefix):].lstrip()
+                stripped = True
+
+    if _HEX_ID.match(name):
+        return "Unknown merchant"
 
     # 2. Truncate at the first column-separator gap (2+ consecutive spaces).
     #    This cleanly removes city, state, URL, and phone columns in one step
     #    for merchants whose name has no internal multi-space padding.
     name = re.split(r"\s{2,}", name)[0]
 
-    # 3. Strip any remaining trailing noise (state codes, URLs, numeric codes).
+    # 3. Drop reference codes and strip trailing noise (state codes, URLs, codes).
+    name = _CODE_SUFFIX.sub("", _REFERENCE.sub("", name))
     for pattern in _TRAILING_PATTERNS:
         name = pattern.sub("", name)
 
-    return name.strip()
+    # 4. Store numbers are followed by the city ("STAR OSCO 3588 BOSTON"),
+    #    so cut at the first word after the first that contains a digit.
+    words = name.split()
+    for i, word in enumerate(words[1:], start=1):
+        if any(ch.isdigit() for ch in word):
+            words = words[:i]
+            break
+
+    return _title_case(" ".join(words)) or description.strip()
+
+
+def _title_case(name: str) -> str:
+    """Title-case an ALL-CAPS name, keeping vowel-less acronyms (MBTA, F&B)."""
+    if name != name.upper():
+        return name  # already mixed case, e.g. "Uber Trip"
+    words = []
+    for word in name.split():
+        if not _VOWEL.search(word):
+            words.append(word)
+        else:
+            words.append("-".join(p[:1].upper() + p[1:].lower() for p in word.split("-")))
+    return " ".join(words)
 
 
 def categorize(description: str, category_hint: Optional[str] = None) -> str:

@@ -2,15 +2,18 @@
 
 import pandas as pd
 
+from src.analysis.categorizer import clean_merchant
 from src.models.transaction import Transaction
 
 
 def to_dataframe(transactions: list[Transaction]) -> pd.DataFrame:
+    # Merchant names are re-derived from the raw description so that rows
+    # imported before a cleaning-rule change still display consistently.
     return pd.DataFrame(
         [
             {
                 "date": t.date,
-                "merchant": t.merchant,
+                "merchant": clean_merchant(t.description),
                 "description": t.description,
                 "amount": float(t.amount),
                 "category": t.category,

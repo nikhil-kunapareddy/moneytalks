@@ -13,6 +13,23 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost/moneytalks")
 
+# Display-name overrides for merchants. If a keyword appears in the raw
+# description (case-insensitive), the merchant is shown under that name.
+# First match wins, so list more specific keywords first.
+MERCHANT_ALIASES: dict[str, str] = {
+    "AMAZON": "Amazon",
+    "AMZN": "Amazon",
+    "UBER EATS": "Uber Eats",
+    "UBER TRIP": "Uber",
+    "LYFT": "Lyft",
+    "COSTCO BY INSTACAR": "Costco via Instacart",
+    "INSTACART": "Instacart",
+    "AIRBNB": "Airbnb",
+    "DOORDASH": "DoorDash",
+    "MYPROTEIN": "Myprotein",
+    "MBTA": "MBTA",
+}
+
 CATEGORY_RULES: dict[str, list[str]] = {
     "groceries": [
         "STAR OSCO", "STAR MARKET", "WOLLASTON", "COSTCO", "WHOLE FOODS",

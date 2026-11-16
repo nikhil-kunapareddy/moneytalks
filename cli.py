@@ -9,17 +9,17 @@ Usage:
   python cli.py categories
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import click
 
 from src.analysis.aggregator import to_dataframe
 from src.analysis.categorizer import categorize, clean_merchant
 from src.db.connection import get_session, init_db
-from src.db.repository import get_charges, insert_transactions
+from src.db.repository import get_charges, get_date_bounds, insert_transactions
 from src.models.transaction import Transaction
 from src.parsers.amex_parser import AmexStatementParser
-from src.visualizations.charts import open_dashboard
+from src.visualizations.dashboard import open_dashboard
 from config import CATEGORY_RULES
 
 
@@ -72,19 +72,41 @@ def import_statement(pdf_path: str) -> None:
 @cli.command()
 @click.option("--month", default=None, help="YYYY-MM — filter to a specific month")
 @click.option("--year", default=None, help="YYYY — filter to a specific year")
-def visualize(month: str | None, year: str | None) -> None:
-    """Open an interactive spending dashboard in the browser."""
+@click.option(
+    "--output",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Save the dashboard HTML here (default: a file in the system temp folder)",
+)
+@click.option("--no-open", is_flag=True, help="Write the file without opening a browser")
+def visualize(
+    month: str | None, year: str | None, output: str | None, no_open: bool
+) -> None:
+    """Open the Overview dashboard in the browser."""
     start_date, end_date = _parse_date_range(month, year)
     session = get_session()
     charges = get_charges(session, start_date, end_date)
-    session.close()
 
     if not charges:
+        session.close()
         click.echo("No charges found for the selected period.")
         return
 
-    click.echo(f"Opening dashboard for {len(charges)} transactions ...")
-    open_dashboard(to_dataframe(charges))
+    # The period is the filter range clamped to the dates actually covered by
+    # imported statements, so days outside the data aren't shown as $0.
+    first, last = get_date_bounds(session)
+    period_start = max(start_date, first) if start_date else first
+    period_end = min(end_date - timedelta(days=1), last) if end_date else last
+    session.close()
+
+    path = open_dashboard(
+        to_dataframe(charges),
+        period_start,
+        period_end,
+        output=output,
+        open_browser=not no_open,
+    )
+    click.echo(f"Dashboard for {len(charges)} transactions: {path}")
 
 
 # ---------------------------------------------------------------------------
