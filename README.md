@@ -181,7 +181,7 @@ reopen the app.
 
 ### Releases (CI)
 
-Every push to `main` runs `.github/workflows/release.yml` on a macOS runner: it
+Every push to `main` runs `.github/workflows/release.yml` on GitHub's latest macOS runner (Apple Silicon): it
 builds the app, smoke-tests the bundle, packages a `.dmg` and publishes a GitHub
 release tagged `v<MAJOR>.<MINOR>.<run number>` (MAJOR.MINOR come from
 `pyproject.toml`).
