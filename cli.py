@@ -19,7 +19,7 @@ from src.analysis.aggregator import to_dataframe
 from src.db.connection import get_session, init_db
 from src.db.repository import get_charges
 from src.services.importer import import_files, statement_files
-from src.services.overview import load_overview
+from src.services.overview import load_periods
 from src.visualizations.dashboard import open_dashboard
 from config import CATEGORY_RULES
 
@@ -85,27 +85,27 @@ def import_statement(paths: tuple[Path, ...], account: str | None) -> None:
 def visualize(
     month: str | None, year: str | None, output: str | None, no_open: bool
 ) -> None:
-    """Open the Overview dashboard in the browser."""
-    start_date, end_date = _parse_date_range(month, year)
+    """Open the Overview dashboard in the browser.
+
+    The page can switch between all time, every year and every month; --month
+    or --year only choose the period it opens on.
+    """
+    _parse_date_range(month, year)  # validates the formats
+    initial = month or year or "all"
     init_db()
     session = get_session()
     try:
-        overview = load_overview(session, start_date, end_date)
+        periods = load_periods(session)
     finally:
         session.close()
 
-    if overview is None:
+    chosen = next((p for p in periods if p.key == initial), None)
+    if chosen is None:
         click.echo("No charges found for the selected period.")
         return
 
-    path = open_dashboard(
-        overview.df,
-        overview.start,
-        overview.end,
-        output=output,
-        open_browser=not no_open,
-    )
-    click.echo(f"Dashboard for {overview.charges} transactions: {path}")
+    path = open_dashboard(periods, initial, output=output, open_browser=not no_open)
+    click.echo(f"Dashboard for {chosen.charges} transactions ({chosen.label}): {path}")
 
 
 # ---------------------------------------------------------------------------

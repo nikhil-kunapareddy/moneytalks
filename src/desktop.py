@@ -21,20 +21,23 @@ from sqlalchemy.exc import SQLAlchemyError
 from config import APP_CONFIG_FILE
 from src.db.connection import get_session, init_db
 from src.services.importer import import_files, statement_files
-from src.services.overview import load_overview
+from src.services.overview import Period, load_periods
 from src.visualizations.dashboard import render_dashboard, render_message
 
 WINDOW_TITLE = "MoneyTalks"
 FILE_TYPES = ("Statements (*.pdf;*.csv)",)
 
 
-def build_page(notice: Optional[str] = None) -> str:
-    """HTML for the window: the dashboard, an empty state, or a connection error."""
+def build_page(notice: Optional[str] = None, period: str = "all") -> str:
+    """HTML for the window: the dashboard, an empty state, or a connection error.
+
+    ``period`` is the period key to open on (kept across imports).
+    """
     try:
         init_db()
         session = get_session()
         try:
-            overview = load_overview(session)
+            periods = load_periods(session)
         finally:
             session.close()
     except SQLAlchemyError as exc:
@@ -48,7 +51,7 @@ def build_page(notice: Optional[str] = None) -> str:
             notice=notice,
         )
 
-    if overview is None:
+    if not periods:
         return render_message(
             "No transactions yet",
             "Import a credit card statement to see your Overview. PDF statements from "
@@ -56,13 +59,14 @@ def build_page(notice: Optional[str] = None) -> str:
             actions=["import"],
             notice=notice,
         )
-    return render_dashboard(overview.df, overview.start, overview.end, notice=notice, app=True)
+    return render_dashboard(periods, period, notice=notice, app=True)
 
 
 class Api:
     """Methods the page can call as ``window.pywebview.api.<name>()``."""
 
-    def import_statements(self) -> Optional[str]:
+    def import_statements(self, period: str = "all") -> Optional[str]:
+        """File picker → import → reload, staying on the period being viewed."""
         window = webview.windows[0]
         chosen = window.create_file_dialog(
             webview.FileDialog.OPEN, allow_multiple=True, file_types=FILE_TYPES
@@ -83,7 +87,7 @@ class Api:
         except SQLAlchemyError as exc:
             notice = f"Import failed: {_first_line(exc)}"
 
-        window.load_html(build_page(notice))
+        window.load_html(build_page(notice, period))
         return notice
 
     def refresh(self) -> None:
@@ -109,8 +113,12 @@ def smoke_test() -> int:
         "date": date(2026, 1, 5), "merchant": "Smoke Test", "description": "SMOKE TEST",
         "amount": 12.5, "category": "shopping", "transaction_type": "charge",
     }])
+    periods = [
+        Period("all", "All time", "all", df, date(2026, 1, 1), date(2026, 1, 31)),
+        Period("2026-01", "January 2026", "month", df, date(2026, 1, 1), date(2026, 1, 31)),
+    ]
     pages = [
-        render_dashboard(df, date(2026, 1, 1), date(2026, 1, 31), notice="ok", app=True),
+        render_dashboard(periods, "2026-01", notice="ok", app=True),
         render_message("Title", "Body", actions=["import", "retry"]),
     ]
     for html in pages:

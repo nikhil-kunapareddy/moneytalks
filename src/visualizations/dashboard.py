@@ -13,9 +13,12 @@ import webbrowser
 from collections.abc import Sequence
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from src.services.overview import Period
 
 from src.analysis.aggregator import (
     daily_spending,
@@ -39,34 +42,45 @@ CATEGORY_LABELS = {
 
 
 def open_dashboard(
-    df: pd.DataFrame,
-    period_start: date,
-    period_end: date,
+    periods: Sequence["Period"],
+    initial: str = "all",
     output: str | Path | None = None,
     open_browser: bool = True,
 ) -> Path:
     """Write the dashboard HTML and (optionally) open it. Returns the file path."""
     path = Path(output) if output else DEFAULT_OUTPUT
-    path.write_text(render_dashboard(df, period_start, period_end), encoding="utf-8")
+    path.write_text(render_dashboard(periods, initial), encoding="utf-8")
     if open_browser:
         webbrowser.open(path.resolve().as_uri())
     return path
 
 
 def render_dashboard(
-    df: pd.DataFrame,
-    period_start: date,
-    period_end: date,
+    periods: Sequence["Period"],
+    initial: str = "all",
     notice: Optional[str] = None,
     app: bool = False,
 ) -> str:
-    """Full HTML of the Overview page.
+    """Full HTML of the Overview page with a period picker.
 
-    ``notice`` shows as a toast (e.g. import results). ``app`` drops the outer
-    grey margin and rounded frame so the page fills the Mac app's window.
+    Every period's figures are embedded, so switching between all time, years
+    and months happens instantly in the page (also when opened in a browser).
+    ``initial`` is the period key shown first; ``notice`` shows as a toast (e.g.
+    import results); ``app`` drops the outer grey margin and rounded frame so
+    the page fills the Mac app's window.
     """
-    payload = build_payload(df, period_start, period_end)
-    payload["notice"] = notice
+    if not periods:
+        raise ValueError("render_dashboard needs at least one period")
+    keys = {p.key for p in periods}
+    payload = {
+        "periods": [
+            {"key": p.key, "label": p.label, "kind": p.kind, "range": _range_label(p.start, p.end)}
+            for p in periods
+        ],
+        "views": {p.key: build_payload(p.df, p.start, p.end) for p in periods},
+        "initial": initial if initial in keys else periods[0].key,
+        "notice": notice,
+    }
     return _fill_template(TEMPLATE_PATH, payload, app=app)
 
 
