@@ -12,14 +12,16 @@ from src.models.transaction import Transaction
 def insert_transactions(
     session: Session, transactions: list[Transaction]
 ) -> tuple[int, int]:
+    """Insert transactions, skipping ones already stored. Returns (inserted, skipped)."""
     inserted = skipped = 0
     for txn in transactions:
+        # A savepoint per row: a duplicate only rolls back itself, not the
+        # rows inserted before it in the same session.
         try:
-            session.add(txn)
-            session.flush()
+            with session.begin_nested():
+                session.add(txn)
             inserted += 1
         except IntegrityError:
-            session.rollback()
             skipped += 1
     session.commit()
     return inserted, skipped

@@ -12,7 +12,6 @@ Sections:
 """
 
 import re
-from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -20,21 +19,21 @@ from typing import Optional
 
 import pdfplumber
 
+from src.parsers.base import RawTransaction
 
-@dataclass
-class RawTransaction:
-    date: date
-    description: str
-    amount: Decimal
-    transaction_type: str  # "charge" | "payment" | "credit"
-    category_hint: Optional[str] = None
-    statement_closing_date: Optional[date] = None
+__all__ = ["AmexStatementParser", "RawTransaction"]
 
 
 class AmexStatementParser:
+    ACCOUNT = "Amex"
     _DATE_RE = re.compile(r"^(\d{2}/\d{2}/\d{2})\*?\s+")
     _AMOUNT_RE = re.compile(r"(-?\$?[\d,]+\.\d{2})\s*$")
     _CATEGORY_HINTS = frozenset({"RESTAURANT", "MERCHANDISE", "GROCERY", "TRAVEL", "GAS"})
+
+    @classmethod
+    def matches(cls, text: str) -> bool:
+        lower = text.lower()
+        return "americanexpress.com" in lower or "american express" in lower
 
     def parse(self, pdf_path: str) -> list[RawTransaction]:
         stmt_date = self._date_from_filename(Path(pdf_path).stem)
@@ -196,6 +195,7 @@ class AmexStatementParser:
             transaction_type=tx_type,
             category_hint=category_hint,
             statement_closing_date=stmt_date,
+            account=self.ACCOUNT,
         )
 
     def _find_amount(

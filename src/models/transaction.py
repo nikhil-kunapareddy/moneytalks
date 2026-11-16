@@ -12,11 +12,19 @@ class Base(DeclarativeBase):
 
 class Transaction(Base):
     __tablename__ = "transactions"
+    # Re-importing a statement must not duplicate rows, but genuinely identical
+    # rows (two $2.40 fares on one day, a $1 charge and its $1 refund) must be
+    # kept. ``seq`` numbers identical rows within one statement to tell them apart.
     __table_args__ = (
-        UniqueConstraint("date", "description", "amount", name="uq_transaction"),
+        UniqueConstraint(
+            "account", "date", "description", "amount", "transaction_type", "seq",
+            name="uq_transaction",
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    account = Column(String, nullable=False)  # e.g. "Chase ••1234"
+    seq = Column(Integer, nullable=False, default=0, server_default="0")
     date = Column(Date, nullable=False)
     description = Column(String, nullable=False)
     merchant = Column(String)

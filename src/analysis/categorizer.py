@@ -14,7 +14,7 @@ from config import CATEGORY_RULES, MERCHANT_ALIASES
 
 # Prefixes injected by Apple Pay or payment intermediaries. They can be
 # chained, e.g. "AplPay TST* FUEL AMERICA".
-_STRIP_PREFIXES: tuple[str, ...] = ("AplPay ", "IC* ", "TST* ", "SQ *")
+_STRIP_PREFIXES: tuple[str, ...] = ("AplPay ", "IC* ", "TST*", "SQ *")
 
 # Opaque IDs used in place of a merchant name (UUID-like).
 _HEX_ID = re.compile(r"^[0-9A-F]{8}-[0-9A-F]{4}-", re.I)
@@ -41,6 +41,7 @@ _HINT_MAP: dict[str, str] = {
     "GROCERY": "groceries",
     "TRAVEL": "travel",
     "GAS": "transportation",
+    "FEES": "fees",  # fee / interest sections of Citi, Chase, BofA statements
 }
 
 
@@ -100,15 +101,13 @@ def clean_merchant(description: str) -> str:
 
 
 def _title_case(name: str) -> str:
-    """Title-case an ALL-CAPS name, keeping vowel-less acronyms (MBTA, F&B)."""
-    if name != name.upper():
-        return name  # already mixed case, e.g. "Uber Trip"
+    """Title-case ALL-CAPS words; keep mixed-case words and vowel-less acronyms (F&B)."""
     words = []
     for word in name.split():
-        if not _VOWEL.search(word):
-            words.append(word)
-        else:
+        if word.isupper() and _VOWEL.search(word):
             words.append("-".join(p[:1].upper() + p[1:].lower() for p in word.split("-")))
+        else:
+            words.append(word)
     return " ".join(words)
 
 
