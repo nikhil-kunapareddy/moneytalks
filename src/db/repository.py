@@ -2,6 +2,7 @@
 
 from datetime import date
 
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -37,3 +38,8 @@ def get_charges(
     if end_date:
         query = query.filter(Transaction.date < end_date)
     return query.order_by(Transaction.date).all()
+
+
+def get_date_bounds(session: Session) -> tuple[date | None, date | None]:
+    """Return the first and last transaction dates stored (any type)."""
+    return session.query(func.min(Transaction.date), func.max(Transaction.date)).one()

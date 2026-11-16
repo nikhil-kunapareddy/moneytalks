@@ -9,7 +9,7 @@ Parse your American Express credit card PDF statements, store transactions in Po
 - **PDF Parsing** — Extracts all transactions from Amex Blue Cash Everyday statements using pdfplumber, handling multi-column layouts and multi-line descriptions automatically
 - **Smart Categorisation** — Rule-based keyword matching across 8 categories (groceries, dining, travel, transportation, shopping, personal care, convenience, health & fitness)
 - **PostgreSQL Storage** — Persistent, deduplication-safe transaction storage via SQLAlchemy; import the same statement twice without creating duplicates
-- **Interactive Dashboards** — Four Plotly charts open directly in your browser: spending by category, top merchants, daily spending, and monthly trends
+- **Overview Dashboard** — A single-page dashboard opens in your browser: spending by category, total spent with top merchants, daily/weekly/monthly spending, charges and merchants by weekday, and auto-generated insights
 - **Simple CLI** — Four commands cover the full workflow: `import`, `visualize`, `summary`, `categories`
 
 ---
@@ -21,7 +21,7 @@ Parse your American Express credit card PDF statements, store transactions in Po
 | PDF extraction | [pdfplumber](https://github.com/jsvine/pdfplumber) |
 | Data wrangling | [pandas](https://pandas.pydata.org/) |
 | ORM / database | [SQLAlchemy](https://www.sqlalchemy.org/) + [psycopg2](https://www.psycopg.org/) |
-| Visualisation | [Plotly](https://plotly.com/python/) |
+| Visualisation | Static HTML + inline SVG (no JS dependencies) |
 | CLI | [Click](https://click.palletsprojects.com/) |
 | Configuration | [python-dotenv](https://github.com/theskumar/python-dotenv) |
 
@@ -93,7 +93,7 @@ Parsing data/2026-03-10.pdf ...
 
 ### Visualise spending
 
-Opens an interactive 2×2 dashboard in your default browser.
+Opens the Overview dashboard in your default browser.
 
 ```bash
 # All transactions in the database
@@ -104,7 +104,12 @@ python cli.py visualize --month 2026-02
 
 # Filter to a full year
 python cli.py visualize --year 2026
+
+# Save the HTML somewhere specific without opening a browser
+python cli.py visualize --output overview.html --no-open
 ```
+
+By default the page is written to `moneytalks-dashboard.html` in your system temp folder.
 
 ### Terminal summary
 
@@ -152,9 +157,11 @@ moneytalks/
 │   │   ├── categorizer.py       # Merchant name cleaning + rule-based categorisation
 │   │   └── aggregator.py       # Pandas aggregations (by category, monthly, etc.)
 │   └── visualizations/
-│       └── charts.py            # Plotly dashboard builder
+│       ├── dashboard.py         # Builds dashboard data, writes + opens the HTML
+│       └── templates/
+│           └── dashboard.html   # Overview dashboard page (HTML/CSS/SVG)
 ├── cli.py                       # Click CLI entry point
-├── config.py                    # DATABASE_URL + CATEGORY_RULES
+├── config.py                    # DATABASE_URL + CATEGORY_RULES + MERCHANT_ALIASES
 ├── pyproject.toml               # Project metadata and tool configuration
 ├── requirements.txt
 └── .env.example
