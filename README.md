@@ -148,6 +148,54 @@ python cli.py categories
 
 ---
 
+## Mac App
+
+MoneyTalks also ships as a native Mac app (Apple Silicon): a window with the
+Overview dashboard whose **Import statement** button opens a file picker for
+PDF/CSV statements.
+
+### Install
+
+1. Download `MoneyTalks-<version>.dmg` from the repository's **Releases** page.
+2. Open it and drag **MoneyTalks** onto **Applications**.
+3. First launch only: the app isn't signed with an Apple Developer ID, so macOS
+   blocks it. Open **System Settings → Privacy & Security** and click
+   **Open Anyway** next to the MoneyTalks message (or run
+   `xattr -dr com.apple.quarantine /Applications/MoneyTalks.app`).
+
+### Database settings
+
+The app uses the same PostgreSQL database as the CLI. Because it has no project
+folder, it reads `DATABASE_URL` from:
+
+```
+~/Library/Application Support/MoneyTalks/config.env
+```
+
+```env
+DATABASE_URL=postgresql://user:password@localhost/moneytalks
+```
+
+If the app can't connect it shows this path and the error; edit the file and
+reopen the app.
+
+### Releases (CI)
+
+Every push to `main` runs `.github/workflows/release.yml` on a macOS runner: it
+builds the app, smoke-tests the bundle, packages a `.dmg` and publishes a GitHub
+release tagged `v<MAJOR>.<MINOR>.<run number>` (MAJOR.MINOR come from
+`pyproject.toml`).
+
+### Build locally
+
+```bash
+pip install -r requirements-app.txt
+packaging/build_macos.sh 0.2.0        # → dist/MoneyTalks-0.2.0.dmg
+python app.py                          # or run from source without packaging
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -169,14 +217,27 @@ moneytalks/
 │   ├── analysis/
 │   │   ├── categorizer.py       # Merchant name cleaning + rule-based categorisation
 │   │   └── aggregator.py       # Pandas aggregations (by category, monthly, etc.)
-│   └── visualizations/
-│       ├── dashboard.py         # Builds dashboard data, writes + opens the HTML
-│       └── templates/
-│           └── dashboard.html   # Overview dashboard page (HTML/CSS/SVG)
+│   ├── services/
+│   │   ├── importer.py          # Import files → DB (shared by CLI and app)
+│   │   └── overview.py          # Load charges + period for the dashboard
+│   ├── visualizations/
+│   │   ├── dashboard.py         # Builds dashboard data, renders the HTML pages
+│   │   ├── assets/              # App icon
+│   │   └── templates/
+│   │       ├── dashboard.html   # Overview dashboard page (HTML/CSS/SVG)
+│   │       └── message.html     # App empty-state / error page
+│   └── desktop.py               # Mac app window (pywebview) + import bridge
+├── packaging/
+│   ├── MoneyTalks.spec          # PyInstaller spec for MoneyTalks.app
+│   ├── MoneyTalks.icns          # App icon
+│   └── build_macos.sh           # Build .app + .dmg
+├── .github/workflows/release.yml  # CI: build + release on every push to main
+├── app.py                       # Mac app entry point
 ├── cli.py                       # Click CLI entry point
 ├── config.py                    # DATABASE_URL + CATEGORY_RULES + MERCHANT_ALIASES
 ├── pyproject.toml               # Project metadata and tool configuration
 ├── requirements.txt
+├── requirements-app.txt         # + pywebview, PyInstaller (Mac app)
 └── .env.example
 ```
 

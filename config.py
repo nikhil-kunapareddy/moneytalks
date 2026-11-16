@@ -1,15 +1,25 @@
 """
 Application configuration.
 
-``DATABASE_URL`` is read from the environment (via .env).
+``DATABASE_URL`` is read from, in order of precedence:
+  1. the environment
+  2. ``.env`` in the project (CLI / development)
+  3. ``~/Library/Application Support/MoneyTalks/config.env`` (the Mac app, which
+     has no project folder)
 ``CATEGORY_RULES`` maps category names to lists of keyword substrings;
 keywords are matched case-insensitively against the raw transaction description.
 """
 
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()
+APP_SUPPORT_DIR = Path.home() / "Library" / "Application Support" / "MoneyTalks"
+APP_CONFIG_FILE = APP_SUPPORT_DIR / "config.env"
+
+load_dotenv()  # project .env; never overrides variables already set
+load_dotenv(APP_CONFIG_FILE)
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost/moneytalks")
 

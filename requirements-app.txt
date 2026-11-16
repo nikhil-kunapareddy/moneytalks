@@ -1,0 +1,4 @@
+# Mac app: runtime (pywebview) and packaging (PyInstaller) on top of the core deps.
+-r requirements.txt
+pywebview==6.2.1
+pyinstaller==6.22.3
