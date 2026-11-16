@@ -38,6 +38,7 @@ notebooks/.ipynb_checkpoints/
 # Statement PDFs — users store their own files here; never commit personal data.
 data/*.pdf
 data/*.csv
+data/backups/
 
 # Temporary debug scripts
 debug_parser.py

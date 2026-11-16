@@ -2,6 +2,7 @@
 MoneyTalks CLI
 
 Usage:
+  python cli.py import data/                 # every .pdf/.csv in the folder
   python cli.py import data/2026-03-10.pdf
   python cli.py visualize --month 2026-02
   python cli.py visualize --year 2026
@@ -9,7 +10,9 @@ Usage:
   python cli.py categories
 """
 
+from collections import Counter
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 import click
 
@@ -18,14 +21,14 @@ from src.analysis.categorizer import categorize, clean_merchant
 from src.db.connection import get_session, init_db
 from src.db.repository import get_charges, get_date_bounds, insert_transactions
 from src.models.transaction import Transaction
-from src.parsers.amex_parser import AmexStatementParser
+from src.parsers import SUPPORTED_SUFFIXES, RawTransaction, detect_parser
 from src.visualizations.dashboard import open_dashboard
 from config import CATEGORY_RULES
 
 
 @click.group()
 def cli() -> None:
-    """MoneyTalks — Amex statement analyser."""
+    """MoneyTalks — credit card statement analyser."""
 
 
 # ---------------------------------------------------------------------------
@@ -33,22 +36,78 @@ def cli() -> None:
 # ---------------------------------------------------------------------------
 
 @cli.command("import")
-@click.argument("pdf_path", type=click.Path(exists=True))
-def import_statement(pdf_path: str) -> None:
-    """Parse an Amex PDF statement and store transactions to the database."""
-    init_db()
-    session = get_session()
+@click.argument("paths", nargs=-1, required=True, type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--account",
+    default=None,
+    help='Label stored on every transaction, overriding the detected card (e.g. "Amex Gold")',
+)
+def import_statement(paths: tuple[Path, ...], account: str | None) -> None:
+    """Import statements from files or folders (Amex, Chase, Citi, Bank of America).
 
-    click.echo(f"Parsing {pdf_path} ...")
-    parser = AmexStatementParser()
-    raw_txns = parser.parse(pdf_path)
-
-    if not raw_txns:
-        click.echo("No transactions found. Check that the PDF is an Amex statement.")
+    Re-importing a file is safe: transactions already stored are skipped.
+    """
+    files = _statement_files(paths)
+    if not files:
+        click.echo("No .pdf or .csv files found.")
         return
 
-    transactions = [
-        Transaction(
+    init_db()
+    session = get_session()
+    total_inserted = total_skipped = 0
+    try:
+        for path in files:
+            parser = detect_parser(path)
+            if parser is None:
+                click.echo(f"  {path.name}: skipped, not a recognised statement")
+                continue
+            try:
+                raw_txns = parser.parse(str(path))
+            except Exception as exc:  # one bad file shouldn't stop the batch
+                click.echo(f"  {path.name}: could not be read ({exc})")
+                continue
+            if not raw_txns:
+                click.echo(f"  {path.name}: no transactions found")
+                continue
+
+            transactions = _to_models(raw_txns, account)
+            inserted, skipped = insert_transactions(session, transactions)
+            total_inserted += inserted
+            total_skipped += skipped
+            click.echo(
+                f"  {path.name} [{transactions[0].account}]: "
+                f"{inserted} imported, {skipped} already stored"
+            )
+    finally:
+        session.close()
+
+    click.echo(f"\n{total_inserted} imported, {total_skipped} skipped from {len(files)} file(s).")
+
+
+def _statement_files(paths: tuple[Path, ...]) -> list[Path]:
+    """Expand folders (non-recursive) into their .pdf/.csv files."""
+    files: list[Path] = []
+    for path in paths:
+        if path.is_dir():
+            files.extend(sorted(
+                p for p in path.iterdir()
+                if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES
+            ))
+        else:
+            files.append(path)
+    return files
+
+
+def _to_models(raw_txns: list[RawTransaction], account: str | None) -> list[Transaction]:
+    seen: Counter = Counter()
+    models = []
+    for r in raw_txns:
+        # Number identical rows so a genuine repeat (same day, merchant, amount)
+        # is stored, while re-importing the same statement is still a no-op.
+        key = (r.date, r.description, r.amount, r.transaction_type)
+        models.append(Transaction(
+            account=account or r.account,
+            seq=seen[key],
             date=r.date,
             description=r.description,
             merchant=clean_merchant(r.description),
@@ -56,13 +115,9 @@ def import_statement(pdf_path: str) -> None:
             category=categorize(r.description, r.category_hint),
             transaction_type=r.transaction_type,
             statement_closing_date=r.statement_closing_date,
-        )
-        for r in raw_txns
-    ]
-
-    inserted, skipped = insert_transactions(session, transactions)
-    session.close()
-    click.echo(f"{inserted} imported, {skipped} skipped (duplicates).")
+        ))
+        seen[key] += 1
+    return models
 
 
 # ---------------------------------------------------------------------------
@@ -84,6 +139,7 @@ def visualize(
 ) -> None:
     """Open the Overview dashboard in the browser."""
     start_date, end_date = _parse_date_range(month, year)
+    init_db()
     session = get_session()
     charges = get_charges(session, start_date, end_date)
 
@@ -119,6 +175,7 @@ def visualize(
 def summary(month: str | None, year: str | None) -> None:
     """Print a spending summary to the terminal."""
     start_date, end_date = _parse_date_range(month, year)
+    init_db()
     session = get_session()
     charges = get_charges(session, start_date, end_date)
     session.close()

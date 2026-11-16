@@ -1,13 +1,13 @@
 # MoneyTalks
 
-Parse your American Express credit card PDF statements, store transactions in PostgreSQL, and explore your spending through interactive browser-based dashboards.
+Import credit card statements from Amex, Chase, Citi and Bank of America, store every transaction in a local PostgreSQL database, and explore your spending through interactive browser-based dashboards.
 
 ---
 
 ## Features
 
-- **PDF Parsing** — Extracts all transactions from Amex Blue Cash Everyday statements using pdfplumber, handling multi-column layouts and multi-line descriptions automatically
-- **Smart Categorisation** — Rule-based keyword matching across 8 categories (groceries, dining, travel, transportation, shopping, personal care, convenience, health & fitness)
+- **Multi-bank import** — Point it at a folder of PDF/CSV statements; each file's bank is detected automatically and every transaction is stored with its card (e.g. `Chase ••1234`). Re-importing is safe: stored transactions are skipped
+- **Smart Categorisation** — Rule-based keyword matching across 9 categories (groceries, dining, travel, transportation, shopping, personal care, convenience, health & fitness, subscriptions), plus fees and interest from the statement's fee sections
 - **PostgreSQL Storage** — Persistent, deduplication-safe transaction storage via SQLAlchemy; import the same statement twice without creating duplicates
 - **Overview Dashboard** — A single-page dashboard opens in your browser: spending by category, total spent with top merchants, daily/weekly/monthly spending, charges and merchants by weekday, and auto-generated insights
 - **Simple CLI** — Four commands cover the full workflow: `import`, `visualize`, `summary`, `categories`
@@ -76,19 +76,28 @@ createdb moneytalks
 
 ## Usage
 
-Place your Amex PDF statement in the `data/` folder, then use the commands below.
+Place your statements (PDF or CSV) in the `data/` folder, then use the commands below.
 
-### Import a statement
+### Import statements
 
-Parses the PDF and stores all transactions to the database. Duplicate transactions are skipped automatically.
+Detects each file's bank, parses it and stores every transaction. Transactions already in the database are skipped, so re-running on the same folder is safe.
 
 ```bash
-python cli.py import data/2026-03-10.pdf
+# Every .pdf/.csv in a folder
+python cli.py import data/
+
+# Specific files
+python cli.py import data/2026-03-10.pdf data/activity.csv
+
+# Override the card label (useful for CSVs, which don't name the card)
+python cli.py import data/activity.csv --account "Amex Gold"
 ```
 
 ```
-Parsing data/2026-03-10.pdf ...
-31 imported, 0 skipped (duplicates).
+  20261109-statements-1234-.pdf [Chase ••1234]: 15 imported, 0 already stored
+  October 27.pdf [Citi ••5678]: 2 imported, 0 already stored
+
+17 imported, 0 skipped from 2 file(s).
 ```
 
 ### Visualise spending
@@ -143,11 +152,15 @@ python cli.py categories
 
 ```
 moneytalks/
-├── data/                        # Drop PDF statements here (git-ignored)
+├── data/                        # Drop PDF/CSV statements here (git-ignored)
 │   └── .gitkeep
 ├── src/
 │   ├── parsers/
-│   │   └── amex_parser.py       # PDF text extraction → RawTransaction objects
+│   │   ├── __init__.py          # detect_parser(): picks the parser for a file
+│   │   ├── base.py              # RawTransaction + shared helpers
+│   │   ├── amex_parser.py       # Amex PDF statements
+│   │   ├── amex_csv.py          # Amex CSV export
+│   │   └── card_pdf.py          # Citi, Chase, Bank of America PDF statements
 │   ├── models/
 │   │   └── transaction.py       # SQLAlchemy Transaction ORM model
 │   ├── db/
@@ -208,11 +221,15 @@ Tool configuration is in `pyproject.toml`.
 
 ## Supported Statements
 
-| Card | Status |
-|---|---|
-| Amex Blue Cash Everyday | Supported |
+| Source | Format | Detected by |
+|---|---|---|
+| American Express | PDF statement | "American Express" on page 1–2 (or a `YYYY-MM-DD.pdf` file name) |
+| American Express | CSV download (`Date,Description,Amount`) | CSV header |
+| Chase credit cards | PDF statement | `chase.com` |
+| Citi credit cards | PDF statement | `citi.com` |
+| Bank of America credit cards | PDF statement | `bankofamerica.com` |
 
-Support for additional Amex card types or other banks can be added by implementing a new parser in `src/parsers/` following the same `RawTransaction` interface.
+Another bank whose PDF lists activity as `MM/DD DESCRIPTION AMOUNT` lines under section headings can usually be added as a small subclass of `SectionedCardParser` in `src/parsers/card_pdf.py`.
 
 ---
 
