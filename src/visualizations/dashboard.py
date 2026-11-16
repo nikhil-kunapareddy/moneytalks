@@ -29,6 +29,7 @@ from src.analysis.aggregator import (
 
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "dashboard.html"
 MESSAGE_TEMPLATE_PATH = Path(__file__).parent / "templates" / "message.html"
+UPDATE_BANNER_PATH = Path(__file__).parent / "templates" / "_update_banner.html"
 ICON_PATH = Path(__file__).parent / "assets" / "icon-128.png"
 DEFAULT_OUTPUT = Path(tempfile.gettempdir()) / "moneytalks-dashboard.html"
 DATA_PLACEHOLDER = "/*__DATA__*/null"
@@ -103,6 +104,9 @@ def _fill_template(path: Path, payload: dict, app: bool = False) -> str:
     if app:
         # Set before first paint, so the window never flashes the framed layout.
         template = template.replace('<html lang="en">', '<html lang="en" class="app">', 1)
+        # Update status banner (driven by src/desktop.py through window.mtUpdate).
+        banner = UPDATE_BANNER_PATH.read_text(encoding="utf-8")
+        template = template.replace("</body>", banner + "</body>", 1)
     # Pages are single self-contained documents, so the icon is inlined.
     # The icon goes in before the data so text in the data is never substituted.
     icon_uri = "data:image/png;base64," + base64.b64encode(ICON_PATH.read_bytes()).decode()

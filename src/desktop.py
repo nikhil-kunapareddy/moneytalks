@@ -3,25 +3,31 @@
 The window shows the same HTML the CLI writes for the browser. The page's
 "Import statement" button calls ``Api.import_statements`` through pywebview,
 which opens a native file picker, imports the chosen statements and reloads
-the page.
+the page. Updates come from GitHub Releases (src/updater.py): checked at launch
+and from MoneyTalks ▸ Check for Updates…, downloaded in the background and
+installed on quit or via the page's "Restart to update" banner.
 
 Database settings come from config.py; inside the app bundle that means
 ``~/Library/Application Support/MoneyTalks/config.env``.
 """
 
+import json
 import sys
 import tempfile
+import webbrowser
 from datetime import date
 from pathlib import Path
 from typing import Optional
 
 import webview
 from sqlalchemy.exc import SQLAlchemyError
+from webview.menu import Menu, MenuAction
 
-from config import APP_CONFIG_FILE
+from config import APP_CONFIG_FILE, AUTO_UPDATE
 from src.db.connection import get_session, init_db
 from src.services.importer import import_files, statement_files
 from src.services.overview import Period, load_periods
+from src.updater import REPO, Updater, app_bundle
 from src.visualizations.dashboard import render_dashboard, render_message
 
 WINDOW_TITLE = "MoneyTalks"
@@ -93,6 +99,30 @@ class Api:
     def refresh(self) -> None:
         webview.windows[0].load_html(build_page())
 
+    def check_for_updates(self) -> None:
+        UPDATER.check(manual=True)
+
+    def restart_to_update(self) -> None:
+        if UPDATER.restart_to_update():
+            webview.windows[0].destroy()  # the installer swaps the app and relaunches it
+
+    def open_url(self, url: str) -> None:
+        if isinstance(url, str) and url.startswith(f"https://github.com/{REPO}/"):  # this repo only
+            webbrowser.open(url)
+
+
+def _push_update_state(state: dict) -> None:
+    """Show the updater's state in the page banner (window.mtUpdate)."""
+    if not webview.windows:
+        return
+    try:
+        webview.windows[0].evaluate_js(f"window.mtUpdate && window.mtUpdate({json.dumps(state)})")
+    except Exception:
+        pass  # window closing or page mid-reload; the loaded event re-sends the state
+
+
+UPDATER = Updater(on_change=_push_update_state)
+
 
 def _first_line(exc: Exception) -> str:
     text = str(exc).strip().splitlines()
@@ -131,7 +161,35 @@ def smoke_test() -> int:
         parser = detect_parser(sample)
         assert parser is not None and len(parser.parse(str(sample))) == 1, "CSV parser"
 
-    print("MoneyTalks smoke test passed")
+    import certifi
+
+    from src.updater import current_version, version_key
+
+    assert Path(certifi.where()).is_file(), "certifi CA bundle missing"
+    assert version_key("v0.2.10") > version_key("0.2.9") > version_key("0.2.0-local"), "version compare"
+    assert "window.mtUpdate" in pages[0], "update banner not injected"
+    print(f"MoneyTalks {current_version()} smoke test passed")
+    return 0
+
+
+def update_now() -> int:
+    """Headless: check, download and stage the latest release, then install it on exit."""
+    from src.updater import current_version, download, fetch_latest, install_blocker, launch_installer, stage, version_key
+
+    release = fetch_latest()
+    print(f"installed {current_version()}, latest {release.version}")
+    if version_key(release.version) <= version_key(current_version()):
+        print("already up to date")
+        return 0
+    blocker = install_blocker()
+    if blocker:
+        print(f"can't install: {blocker}")
+        return 1
+    dmg = download(release, lambda p: print(f"\rdownloading {p}%", end="", flush=True))
+    print()
+    staged = stage(dmg, release.version)
+    launch_installer(staged, relaunch=False)
+    print(f"staged {staged}; it replaces {app_bundle()} as this process exits")
     return 0
 
 
@@ -139,8 +197,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if "--smoke-test" in argv:
         return smoke_test()
+    if "--update-now" in argv:
+        return update_now()
 
-    webview.create_window(
+    window = webview.create_window(
         WINDOW_TITLE,
         html=build_page(),
         js_api=Api(),
@@ -149,5 +209,15 @@ def main(argv: Optional[list[str]] = None) -> int:
         min_size=(960, 700),
         background_color="#f2f2f2",  # same as the page, no grey flash on load
     )
-    webview.start()
+    # Re-send the update banner after every page load (imports reload the page).
+    window.events.loaded += lambda: _push_update_state(UPDATER.state)
+    # ⌘Q and the close button both fire "closing": install a downloaded update then.
+    window.events.closing += lambda: UPDATER.install_on_quit()
+
+    if AUTO_UPDATE and app_bundle() is not None:
+        UPDATER.start_automatic_checks()
+
+    webview.start(menu=[
+        Menu("__app__", [MenuAction("Check for Updates…", lambda: UPDATER.check(manual=True))]),
+    ])
     return 0
