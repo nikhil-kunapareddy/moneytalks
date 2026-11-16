@@ -1,16 +1,19 @@
-"""Overview dashboard.
+"""Overview dashboard pages.
 
-Builds a JSON payload from charge DataFrames, injects it into the static
-HTML template in ``templates/dashboard.html`` and opens it in the browser.
-All rendering (charts, hover, insights) happens client-side in that page.
+Builds a JSON payload from charge DataFrames and injects it into the static
+HTML templates in ``templates/``. All rendering (charts, hover, insights)
+happens client-side. The CLI writes the page to a file and opens a browser;
+the Mac app shows the same HTML in its window.
 """
 
 import base64
 import json
 import tempfile
 import webbrowser
+from collections.abc import Sequence
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 
@@ -22,6 +25,7 @@ from src.analysis.aggregator import (
 )
 
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "dashboard.html"
+MESSAGE_TEMPLATE_PATH = Path(__file__).parent / "templates" / "message.html"
 ICON_PATH = Path(__file__).parent / "assets" / "icon-128.png"
 DEFAULT_OUTPUT = Path(tempfile.gettempdir()) / "moneytalks-dashboard.html"
 DATA_PLACEHOLDER = "/*__DATA__*/null"
@@ -42,17 +46,45 @@ def open_dashboard(
     open_browser: bool = True,
 ) -> Path:
     """Write the dashboard HTML and (optionally) open it. Returns the file path."""
-    payload = build_payload(df, period_start, period_end)
-    template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    # The page is a single self-contained file, so the icon is inlined.
-    icon_uri = "data:image/png;base64," + base64.b64encode(ICON_PATH.read_bytes()).decode()
-    html = template.replace(ICON_PLACEHOLDER, icon_uri).replace(DATA_PLACEHOLDER, _to_js(payload))
-
     path = Path(output) if output else DEFAULT_OUTPUT
-    path.write_text(html, encoding="utf-8")
+    path.write_text(render_dashboard(df, period_start, period_end), encoding="utf-8")
     if open_browser:
         webbrowser.open(path.resolve().as_uri())
     return path
+
+
+def render_dashboard(
+    df: pd.DataFrame,
+    period_start: date,
+    period_end: date,
+    notice: Optional[str] = None,
+) -> str:
+    """Full HTML of the Overview page. ``notice`` shows as a toast (e.g. import results)."""
+    payload = build_payload(df, period_start, period_end)
+    payload["notice"] = notice
+    return _fill_template(TEMPLATE_PATH, payload)
+
+
+def render_message(
+    title: str,
+    body: str,
+    actions: Sequence[str] = (),
+    notice: Optional[str] = None,
+) -> str:
+    """A simple full-page message (empty database, connection error) for the Mac app.
+
+    ``actions`` may contain "import" and/or "retry".
+    """
+    payload = {"title": title, "body": body, "actions": list(actions), "notice": notice}
+    return _fill_template(MESSAGE_TEMPLATE_PATH, payload)
+
+
+def _fill_template(path: Path, payload: dict) -> str:
+    template = path.read_text(encoding="utf-8")
+    # Pages are single self-contained documents, so the icon is inlined.
+    # The icon goes in before the data so text in the data is never substituted.
+    icon_uri = "data:image/png;base64," + base64.b64encode(ICON_PATH.read_bytes()).decode()
+    return template.replace(ICON_PLACEHOLDER, icon_uri).replace(DATA_PLACEHOLDER, _to_js(payload))
 
 
 def build_payload(df: pd.DataFrame, period_start: date, period_end: date) -> dict:

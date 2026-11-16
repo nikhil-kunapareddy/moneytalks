@@ -10,18 +10,16 @@ Usage:
   python cli.py categories
 """
 
-from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 
 import click
 
 from src.analysis.aggregator import to_dataframe
-from src.analysis.categorizer import categorize, clean_merchant
 from src.db.connection import get_session, init_db
-from src.db.repository import get_charges, get_date_bounds, insert_transactions
-from src.models.transaction import Transaction
-from src.parsers import SUPPORTED_SUFFIXES, RawTransaction, detect_parser
+from src.db.repository import get_charges
+from src.services.importer import import_files, statement_files
+from src.services.overview import load_overview
 from src.visualizations.dashboard import open_dashboard
 from config import CATEGORY_RULES
 
@@ -47,77 +45,27 @@ def import_statement(paths: tuple[Path, ...], account: str | None) -> None:
 
     Re-importing a file is safe: transactions already stored are skipped.
     """
-    files = _statement_files(paths)
+    files = statement_files(paths)
     if not files:
         click.echo("No .pdf or .csv files found.")
         return
 
     init_db()
     session = get_session()
-    total_inserted = total_skipped = 0
     try:
-        for path in files:
-            parser = detect_parser(path)
-            if parser is None:
-                click.echo(f"  {path.name}: skipped, not a recognised statement")
-                continue
-            try:
-                raw_txns = parser.parse(str(path))
-            except Exception as exc:  # one bad file shouldn't stop the batch
-                click.echo(f"  {path.name}: could not be read ({exc})")
-                continue
-            if not raw_txns:
-                click.echo(f"  {path.name}: no transactions found")
-                continue
-
-            transactions = _to_models(raw_txns, account)
-            inserted, skipped = insert_transactions(session, transactions)
-            total_inserted += inserted
-            total_skipped += skipped
-            click.echo(
-                f"  {path.name} [{transactions[0].account}]: "
-                f"{inserted} imported, {skipped} already stored"
-            )
+        report = import_files(session, files, account)
     finally:
         session.close()
 
-    click.echo(f"\n{total_inserted} imported, {total_skipped} skipped from {len(files)} file(s).")
-
-
-def _statement_files(paths: tuple[Path, ...]) -> list[Path]:
-    """Expand folders (non-recursive) into their .pdf/.csv files."""
-    files: list[Path] = []
-    for path in paths:
-        if path.is_dir():
-            files.extend(sorted(
-                p for p in path.iterdir()
-                if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES
-            ))
+    for result in report.files:
+        if result.error:
+            click.echo(f"  {result.name}: skipped, {result.error}")
         else:
-            files.append(path)
-    return files
-
-
-def _to_models(raw_txns: list[RawTransaction], account: str | None) -> list[Transaction]:
-    seen: Counter = Counter()
-    models = []
-    for r in raw_txns:
-        # Number identical rows so a genuine repeat (same day, merchant, amount)
-        # is stored, while re-importing the same statement is still a no-op.
-        key = (r.date, r.description, r.amount, r.transaction_type)
-        models.append(Transaction(
-            account=account or r.account,
-            seq=seen[key],
-            date=r.date,
-            description=r.description,
-            merchant=clean_merchant(r.description),
-            amount=r.amount,
-            category=categorize(r.description, r.category_hint),
-            transaction_type=r.transaction_type,
-            statement_closing_date=r.statement_closing_date,
-        ))
-        seen[key] += 1
-    return models
+            click.echo(
+                f"  {result.name} [{result.account}]: "
+                f"{result.inserted} imported, {result.skipped} already stored"
+            )
+    click.echo(f"\n{report.summary()}")
 
 
 # ---------------------------------------------------------------------------
@@ -141,28 +89,23 @@ def visualize(
     start_date, end_date = _parse_date_range(month, year)
     init_db()
     session = get_session()
-    charges = get_charges(session, start_date, end_date)
-
-    if not charges:
+    try:
+        overview = load_overview(session, start_date, end_date)
+    finally:
         session.close()
+
+    if overview is None:
         click.echo("No charges found for the selected period.")
         return
 
-    # The period is the filter range clamped to the dates actually covered by
-    # imported statements, so days outside the data aren't shown as $0.
-    first, last = get_date_bounds(session)
-    period_start = max(start_date, first) if start_date else first
-    period_end = min(end_date - timedelta(days=1), last) if end_date else last
-    session.close()
-
     path = open_dashboard(
-        to_dataframe(charges),
-        period_start,
-        period_end,
+        overview.df,
+        overview.start,
+        overview.end,
         output=output,
         open_browser=not no_open,
     )
-    click.echo(f"Dashboard for {len(charges)} transactions: {path}")
+    click.echo(f"Dashboard for {overview.charges} transactions: {path}")
 
 
 # ---------------------------------------------------------------------------
