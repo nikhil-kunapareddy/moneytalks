@@ -23,6 +23,10 @@ load_dotenv(APP_CONFIG_FILE)
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost/moneytalks")
 
+# Mac app: check GitHub for new releases at launch and every few hours
+# (set MONEYTALKS_AUTO_UPDATE=false in config.env to only check from the menu).
+AUTO_UPDATE = os.getenv("MONEYTALKS_AUTO_UPDATE", "true").strip().lower() not in ("0", "false", "no", "off")
+
 # Display-name overrides for merchants. If a keyword appears in the raw
 # description (case-insensitive), the merchant is shown under that name.
 # First match wins, so list more specific keywords first.

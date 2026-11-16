@@ -186,6 +186,27 @@ DATABASE_URL=postgresql://user:password@localhost/moneytalks
 If the app can't connect it shows this path and the error; edit the file and
 reopen the app.
 
+### Updates
+
+The app keeps itself up to date from this repository's GitHub Releases:
+
+- It checks 5 seconds after launch and then every 6 hours. You can also check any
+  time with **MoneyTalks ▸ Check for Updates…**.
+- A new version downloads in the background. A banner then says
+  *"MoneyTalks x.y.z is ready"*. Click **Restart to update** to switch now, or just
+  quit: the update installs as the app closes, and the next launch is the new version.
+- If anything fails during the swap, the previous version is put back.
+- The app must live somewhere it can write to, such as **Applications**. When it
+  runs straight from the `.dmg` or the Downloads folder, the banner offers the
+  download page instead.
+- To check only from the menu, add `MONEYTALKS_AUTO_UPDATE=false` to `config.env`.
+
+Update checks contact `api.github.com` and GitHub's download servers with a
+generic `MoneyTalks-Updater` user agent. No account or personal data is sent.
+
+To test the full path without the window, run
+`MoneyTalks.app/Contents/MacOS/MoneyTalks --update-now`.
+
 ### Releases (CI)
 
 Every push to `main` runs `.github/workflows/release.yml` on GitHub's latest macOS runner (Apple Silicon): it
@@ -232,8 +253,10 @@ moneytalks/
 │   │   ├── assets/              # App icon
 │   │   └── templates/
 │   │       ├── dashboard.html   # Overview dashboard page (HTML/CSS/SVG)
-│   │       └── message.html     # App empty-state / error page
-│   └── desktop.py               # Mac app window (pywebview) + import bridge
+│   │       ├── message.html     # App empty-state / error page
+│   │       └── _update_banner.html  # App update banner
+│   ├── desktop.py               # Mac app window (pywebview) + import bridge
+│   └── updater.py               # In-app updates from GitHub Releases
 ├── packaging/
 │   ├── MoneyTalks.spec          # PyInstaller spec for MoneyTalks.app
 │   ├── MoneyTalks.icns          # App icon
