@@ -20,7 +20,9 @@ concurrency:
 jobs:
   release:
     if: github.ref == 'refs/heads/main'
-    runs-on: macos-14  # Apple Silicon (arm64)
+    # Apple Silicon (arm64). "latest" follows GitHub's supported macOS image,
+    # so image retirements (macos-14 was retired Nov 2026) don't break releases.
+    runs-on: macos-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
