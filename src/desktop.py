@@ -56,7 +56,7 @@ def build_page(notice: Optional[str] = None) -> str:
             actions=["import"],
             notice=notice,
         )
-    return render_dashboard(overview.df, overview.start, overview.end, notice=notice)
+    return render_dashboard(overview.df, overview.start, overview.end, notice=notice, app=True)
 
 
 class Api:
@@ -110,7 +110,7 @@ def smoke_test() -> int:
         "amount": 12.5, "category": "shopping", "transaction_type": "charge",
     }])
     pages = [
-        render_dashboard(df, date(2026, 1, 1), date(2026, 1, 31), notice="ok"),
+        render_dashboard(df, date(2026, 1, 1), date(2026, 1, 31), notice="ok", app=True),
         render_message("Title", "Body", actions=["import", "retry"]),
     ]
     for html in pages:
@@ -139,7 +139,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         width=1380,
         height=940,
         min_size=(960, 700),
-        background_color="#cfcfcf",
+        background_color="#f2f2f2",  # same as the page, no grey flash on load
     )
     webview.start()
     return 0

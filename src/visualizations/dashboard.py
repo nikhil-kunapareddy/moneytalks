@@ -58,11 +58,16 @@ def render_dashboard(
     period_start: date,
     period_end: date,
     notice: Optional[str] = None,
+    app: bool = False,
 ) -> str:
-    """Full HTML of the Overview page. ``notice`` shows as a toast (e.g. import results)."""
+    """Full HTML of the Overview page.
+
+    ``notice`` shows as a toast (e.g. import results). ``app`` drops the outer
+    grey margin and rounded frame so the page fills the Mac app's window.
+    """
     payload = build_payload(df, period_start, period_end)
     payload["notice"] = notice
-    return _fill_template(TEMPLATE_PATH, payload)
+    return _fill_template(TEMPLATE_PATH, payload, app=app)
 
 
 def render_message(
@@ -76,11 +81,14 @@ def render_message(
     ``actions`` may contain "import" and/or "retry".
     """
     payload = {"title": title, "body": body, "actions": list(actions), "notice": notice}
-    return _fill_template(MESSAGE_TEMPLATE_PATH, payload)
+    return _fill_template(MESSAGE_TEMPLATE_PATH, payload, app=True)
 
 
-def _fill_template(path: Path, payload: dict) -> str:
+def _fill_template(path: Path, payload: dict, app: bool = False) -> str:
     template = path.read_text(encoding="utf-8")
+    if app:
+        # Set before first paint, so the window never flashes the framed layout.
+        template = template.replace('<html lang="en">', '<html lang="en" class="app">', 1)
     # Pages are single self-contained documents, so the icon is inlined.
     # The icon goes in before the data so text in the data is never substituted.
     icon_uri = "data:image/png;base64," + base64.b64encode(ICON_PATH.read_bytes()).decode()
