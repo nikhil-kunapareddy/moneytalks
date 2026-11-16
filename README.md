@@ -2,6 +2,12 @@
 
 Import credit card statements from Amex, Chase, Citi and Bank of America, store every transaction in a local PostgreSQL database, and explore your spending through interactive browser-based dashboards.
 
+<p>
+  <a href="https://github.com/nikhil-kunapareddy/moneytalks/releases/latest/download/MoneyTalks.dmg"><img src="https://img.shields.io/badge/Download_for_macOS-Apple_Silicon-111111?style=for-the-badge&logo=apple&logoColor=white" alt="Download MoneyTalks for macOS" height="36"></a>
+</p>
+
+Latest Mac app, macOS 12 or later on Apple Silicon. See [Mac App](#mac-app) for the one-time first-launch step, or browse [all releases](https://github.com/nikhil-kunapareddy/moneytalks/releases).
+
 ---
 
 ## Features
@@ -102,16 +108,16 @@ python cli.py import data/activity.csv --account "Amex Gold"
 
 ### Visualise spending
 
-Opens the Overview dashboard in your default browser.
+Opens the Overview dashboard in your default browser. The date button at the top switches between **All time**, each **year** and each **month** that has charges; `--month` / `--year` only choose the period it opens on.
 
 ```bash
-# All transactions in the database
+# Open on all time
 python cli.py visualize
 
-# Filter to a specific month
+# Open on a specific month
 python cli.py visualize --month 2026-02
 
-# Filter to a full year
+# Open on a full year
 python cli.py visualize --year 2026
 
 # Save the HTML somewhere specific without opening a browser
@@ -156,7 +162,8 @@ PDF/CSV statements.
 
 ### Install
 
-1. Download `MoneyTalks-<version>.dmg` from the repository's **Releases** page.
+1. Click **Download for macOS** at the top of this page (always the latest release,
+   `MoneyTalks.dmg`), or pick a version on the **Releases** page.
 2. Open it and drag **MoneyTalks** onto **Applications**.
 3. First launch only: the app isn't signed with an Apple Developer ID, so macOS
    blocks it. Open **System Settings → Privacy & Security** and click

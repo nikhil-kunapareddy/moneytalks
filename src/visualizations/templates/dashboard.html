@@ -30,22 +30,16 @@ html.app .frame{max-width:none;min-height:100vh;border:0;border-radius:0;box-sha
 .top{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand{display:flex;align-items:center;gap:10px;font-size:23px;font-weight:500;letter-spacing:-.02em}
 .logo{width:36px;height:36px;border-radius:9px;box-shadow:0 0 0 1px rgba(0,0,0,.05),0 4px 10px -4px rgba(0,0,0,.25)}
-.tools{display:flex;gap:10px;align-items:center}
-.circle{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#f4f4f4;box-shadow:0 0 0 1px rgba(0,0,0,.05),0 3px 8px -4px rgba(0,0,0,.18)}
-.bell{position:relative}
-.bell::after{content:"";position:absolute;top:11px;right:12px;width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 1.5px #f4f4f4}
-.avatar{width:44px;height:44px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,#f59e0b,#ec4899,#8b5cf6,#f59e0b)}
-.avatar div{width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#ecebe8,#cfcac4);display:grid;place-items:center;border:2px solid #f2f2f2}
 
 .titlerow{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:26px;flex-wrap:wrap}
 .title{display:flex;align-items:flex-start;gap:8px}
 h1{font-size:46px;font-weight:400;letter-spacing:-.035em;margin:0;line-height:1}
-.linkbtn{width:30px;height:30px;border-radius:50%;background:#fbfbfb;display:grid;place-items:center;box-shadow:0 0 0 1px rgba(0,0,0,.05),0 4px 10px -4px rgba(0,0,0,.2);margin-top:-12px}
 .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pill.white{background:#fafafa;box-shadow:0 0 0 1px rgba(0,0,0,.05),0 2px 6px -3px rgba(0,0,0,.18)}
 .pill{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 14px;border-radius:13px;font-size:12.5px;font-weight:500;white-space:nowrap}
 .pill.grey{background:#e9e9e9;box-shadow:0 0 0 1px rgba(0,0,0,.035)}
 .pill:disabled{opacity:.6;cursor:progress}
+html:not(.app) #importBtn{display:none}  /* works only in the Mac app */
 .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:50;background:#1c1c1c;color:#fff;font-size:13px;line-height:1.45;padding:10px 16px;border-radius:12px;box-shadow:0 12px 30px -10px rgba(0,0,0,.45);max-width:min(640px,calc(100% - 32px))}
 .toast[hidden]{display:none}
 .menuwrap{position:relative}
@@ -53,6 +47,9 @@ h1{font-size:46px;font-weight:400;letter-spacing:-.035em;margin:0;line-height:1}
 .menu.open{display:block}
 .menu button{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:8px;font-size:12.5px}
 .menu button:hover,.menu button.on{background:#f1f1f1}
+.menu.period{min-width:180px;max-height:380px;overflow-y:auto}
+.menu .sec{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#9a9a9a;padding:10px 10px 4px}
+.menu .sec:first-child{padding-top:6px}
 
 /* ---------- grid ---------- */
 .grid{display:grid;grid-template-columns:.74fr 1.26fr 1fr;grid-template-rows:392px 168px 168px;gap:12px;margin-top:22px}
@@ -63,9 +60,8 @@ h1{font-size:46px;font-weight:400;letter-spacing:-.035em;margin:0;line-height:1}
 .mid1{grid-column:2;grid-row:2}
 .mid2{grid-column:2;grid-row:3}
 .insight{grid-column:3;grid-row:2/4}
-.head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:38px}
 .head h2{font-size:19px;font-weight:500;letter-spacing:-.015em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.more{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#fbfbfb;box-shadow:0 0 0 1px rgba(0,0,0,.07)}
 
 /* hero (stepped bars) */
 .hero-body{position:relative;flex:1;margin:12px -20px -20px}
@@ -161,17 +157,15 @@ svg.bars{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;ov
       <img class="logo" src="__ICON__" alt="" width="36" height="36">
       moneytalks
     </div>
-    <div class="tools">
-      <button class="circle" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
-      <button class="circle bell" aria-label="Notifications"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
-      <div class="avatar"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="#8f8a84"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></div></div>
-    </div>
   </header>
 
   <div class="titlerow">
-    <div class="title"><h1>Overview</h1><button class="linkbtn" aria-label="Copy link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b1b1b" stroke-width="2.4" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></button></div>
+    <div class="title"><h1>Overview</h1></div>
     <div class="controls">
-      <div class="pill white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg><span id="rangeCur"></span></div>
+      <div class="menuwrap">
+        <button class="pill white" id="periodBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg><span id="periodLabel"></span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1b1b1b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="menu period" id="periodMenu"></div>
+      </div>
       <div class="menuwrap">
         <button class="pill grey" id="granBtn"><span id="granLabel">Daily</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1b1b1b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="menu" id="granMenu"><button data-g="daily" class="on">Daily</button><button data-g="weekly">Weekly</button><button data-g="monthly">Monthly</button></div>
@@ -182,19 +176,19 @@ svg.bars{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;ov
 
   <main class="grid">
     <section class="card hero">
-      <div class="head"><h2>Spending by Category</h2><button class="more" aria-label="More"><svg width="16" height="4" viewBox="0 0 16 4" fill="#1b1b1b"><circle cx="2" cy="2" r="1.6"/><circle cx="8" cy="2" r="1.6"/><circle cx="14" cy="2" r="1.6"/></svg></button></div>
+      <div class="head"><h2>Spending by Category</h2></div>
       <div class="hero-body" id="heroBody"></div>
     </section>
 
     <section class="card side">
-      <div class="head"><h2>Total Spent</h2><button class="more" aria-label="More"><svg width="16" height="4" viewBox="0 0 16 4" fill="#1b1b1b"><circle cx="2" cy="2" r="1.6"/><circle cx="8" cy="2" r="1.6"/><circle cx="14" cy="2" r="1.6"/></svg></button></div>
+      <div class="head"><h2>Total Spent</h2></div>
       <div class="bigrow"><div class="big" id="sideBig"></div><div class="badge" id="sideBadge"></div></div>
       <hr class="sep">
       <div id="sideRows"></div>
     </section>
 
     <section class="card left">
-      <div class="head"><h2 id="leftTitle">Daily Spending</h2><button class="more" aria-label="More"><svg width="16" height="4" viewBox="0 0 16 4" fill="#1b1b1b"><circle cx="2" cy="2" r="1.6"/><circle cx="8" cy="2" r="1.6"/><circle cx="14" cy="2" r="1.6"/></svg></button></div>
+      <div class="head"><h2 id="leftTitle">Daily Spending</h2></div>
       <div class="stepwrap" id="stepwrap"></div>
       <div class="xlabs" id="xlabs"></div>
     </section>
@@ -246,30 +240,56 @@ const pct = v => Math.round(v * 100) + '%';
 const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const listJoin = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
-const MORE = '<button class="more" aria-label="More"><svg width="16" height="4" viewBox="0 0 16 4" fill="#1b1b1b"><circle cx="2" cy="2" r="1.6"/><circle cx="8" cy="2" r="1.6"/><circle cx="14" cy="2" r="1.6"/></svg></button>';
 
-const T = DATA.totals, C = DATA.categories, M = DATA.merchants;
+/* ---------- period state: all time / a year / a month ---------- */
+const PERIODS = DATA.periods;
+let period, VIEW, T, C, M, HERO_COLS, INSIGHTS;
+let heroHi = 0, gran = 'daily', insIdx = 0, insTimer;
 
-/* ---------- content ---------- */
-const otherCats = C.length > 5 ? C.slice(4) : [];
-const HERO_COLS = [
-  ...C.slice(0, otherCats.length ? 4 : 5).map(c => ({label: c.label, value: c.amount, count: c.count, share: c.share})),
-  ...(otherCats.length ? [{label: `Other (${otherCats.length})`, value: sum(otherCats, c => c.amount), count: sum(otherCats, c => c.count), share: sum(otherCats, c => c.share)}] : []),
-];
+function selectPeriod(key) {
+  period = PERIODS.find(p => p.key === key) || PERIODS[0];
+  VIEW = DATA.views[period.key];
+  T = VIEW.totals; C = VIEW.categories; M = VIEW.merchants;
+  HERO_COLS = heroColumns();
+  INSIGHTS = buildInsights();
+  heroHi = 0;
+}
 
-const INSIGHTS = (() => {
+function heroColumns() {
+  const other = C.length > 5 ? C.slice(4) : [];
+  return [
+    ...C.slice(0, other.length ? 4 : 5).map(c => ({label: c.label, value: c.amount, count: c.count, share: c.share})),
+    ...(other.length ? [{label: `Other (${other.length})`, value: sum(other, c => c.amount), count: sum(other, c => c.count), share: sum(other, c => c.share)}] : []),
+  ];
+}
+
+function buildInsights() {
   const out = [], c0 = C[0];
+  const where = period.kind === 'all' ? 'overall' : 'in ' + period.label;
   const topFrac = Math.floor(c0.topMerchantAmount / c0.amount * 100);
-  out.push({big: pct(c0.share), head: `${c0.label} was ${pct(c0.share)} of your spending this period.`,
+  const verb = /[^s]s$/i.test(c0.label) ? 'were' : 'was';  // "Groceries were", "Fitness was"
+  out.push({big: pct(c0.share), head: `${c0.label} ${verb} ${pct(c0.share)} of your spending ${where}.`,
     sub: topFrac >= 100 ? `All of it at ${c0.topMerchant}.` : `${c0.topMerchant} (${money(c0.topMerchantAmount)}) made up ${topFrac}% of it.`});
   if (C[1]) out.push({big: pct(C[1].share), head: `${C[1].label} came second at ${money(C[1].amount)}.`,
     sub: C[1].count === 1 ? `A single charge at ${C[1].topMerchant}.` : `${C[1].count} charges, led by ${C[1].topMerchant} (${money(C[1].topMerchantAmount)}).`});
-  if (C.length > 3) { const s3 = sum(C.slice(0, 3), c => c.share); out.push({big: pct(s3), head: `Three categories made up ${pct(s3)} of your spending.`,
+  if (C.length > 3) { const s3 = sum(C.slice(0, 3), c => c.share); out.push({big: pct(s3), head: `Three categories made up ${pct(s3)} of your spending ${where}.`,
     sub: `${listJoin(C.slice(0, 3).map(c => c.label))}. The other ${C.length - 3} came to ${money(sum(C.slice(3), c => c.amount))}.`}); }
   return out.slice(0, 3);
-})();
+}
 
-let heroHi = 0, gran = 'daily', insIdx = 0, insTimer;
+function buildPeriodMenu() {
+  const sections = [['all', ''], ['year', 'Years'], ['month', 'Months']];
+  const menu = $('#periodMenu');
+  menu.innerHTML = sections.map(([kind, title]) => {
+    const items = PERIODS.filter(p => p.kind === kind);
+    if (!items.length) return '';
+    return (title ? `<div class="sec">${title}</div>` : '') + items.map(p =>
+      `<button data-k="${esc(p.key)}" class="${p.key === period.key ? 'on' : ''}" title="${esc(p.range)}">${esc(p.label)}</button>`).join('');
+  }).join('');
+  menu.querySelectorAll('button').forEach(b => b.onclick = () => {
+    if (b.dataset.k !== period.key) { selectPeriod(b.dataset.k); render(); }
+  });
+}
 
 /* ---------- hero: stepped bars ---------- */
 function niceStep(max, target = 4) {
@@ -331,9 +351,9 @@ function drawSide() {
 
 /* ---------- left: step chart ---------- */
 function series() {
-  if (gran === 'weekly') return DATA.weekly;
-  if (gran === 'monthly') return DATA.monthly;
-  return DATA.daily;
+  if (gran === 'weekly') return VIEW.weekly;
+  if (gran === 'monthly') return VIEW.monthly;
+  return VIEW.daily;
 }
 function drawLeft(hover = null) {
   const wrap = $('#stepwrap'), pts = series(), n = pts.length;
@@ -382,7 +402,7 @@ function drawDots(id, cfg) {
     for (let r = 0; r < Math.ceil(nd / 2); r++) rows += `<div class="r">${`<span class="dot" style="background:${color}"></span>`.repeat(Math.min(2, nd - r * 2))}</div>`;
     return `<div class="grp" title="${esc(x.tip)}">${rows}${i === peak ? `<div class="peak">${cfg.tag}: <b>${esc(x.label)}</b></div>` : ''}</div>`;
   }).join('');
-  $('#' + id).innerHTML = `<div class="head"><h2>${esc(cfg.title)}</h2>${MORE}</div>
+  $('#' + id).innerHTML = `<div class="head"><h2>${esc(cfg.title)}</h2></div>
     <div class="mbody"><div class="mnum">${esc(cfg.value)}</div><div class="dots" title="${unit > 1 && cfg.money ? 'each dot ≈ ' + money0(unit) : ''}">${groups}</div><div class="mright"><div>${esc(cfg.right[0])}</div><div>${esc(cfg.right[1])}</div></div></div>`;
 }
 
@@ -403,19 +423,19 @@ function restartTimer() {
   if (INSIGHTS.length > 1) insTimer = setInterval(() => showInsight((insIdx + 1) % INSIGHTS.length), 6000);
 }
 
-/* ---------- wiring ---------- */
+/* ---------- render the selected period ---------- */
 function render() {
-  $('#rangeCur').textContent = DATA.period.label;
+  $('#periodLabel').textContent = period.label;
+  $('#periodBtn').title = period.range;
+  buildPeriodMenu();
   drawHero(); drawSide(); drawLeft();
   drawDots('mid1', {title: 'Transactions', value: String(T.charges), color: 'green', tag: 'Peak',
-    groups: DATA.weekday.map(w => ({label: w.day, v: w.count, tip: `${w.day}: ${w.count} charges`})),
+    groups: VIEW.weekday.map(w => ({label: w.day, v: w.count, tip: `${w.day}: ${w.count} charges`})),
     right: ['avg per charge', money(T.avg)]});
   drawDots('mid2', {title: 'Merchants', value: String(T.merchants), color: 'blue', tag: 'Highest', money: true,
-    groups: DATA.weekday.map(w => ({label: w.day, v: w.amount, tip: `${w.day}: ${money(w.amount)}`})),
-    right: ['biggest charge', money(DATA.biggest.amount)]});
+    groups: VIEW.weekday.map(w => ({label: w.day, v: w.amount, tip: `${w.day}: ${money(w.amount)}`})),
+    right: ['biggest charge', money(VIEW.biggest.amount)]});
   showInsight(0, false); restartTimer();
-  wireDesktop();
-  if (DATA.notice) showToast(DATA.notice);
 }
 
 /* ---------- Mac app bridge (pywebview) ---------- */
@@ -427,20 +447,26 @@ function showToast(text) {
 }
 function wireDesktop() {
   const btn = $('#importBtn'), api = window.pywebview && window.pywebview.api;
-  if (!api || !api.import_statements) { btn.title = 'Import from the terminal: python cli.py import data/'; return; }
+  if (!api || !api.import_statements) return;  // browser page: button is hidden
   btn.title = 'Import PDF or CSV statements';
   btn.onclick = async () => {
     const label = $('span', btn);
     btn.disabled = true; label.textContent = 'Importing…';
-    try { await api.import_statements(); }  // on success the app reloads this page
+    try { await api.import_statements(period.key); }  // on success the app reloads this page
     catch (e) { showToast('Import failed: ' + (e && e.message ? e.message : e)); }
     finally { btn.disabled = false; label.textContent = 'Import statement'; }
   };
 }
 window.addEventListener('pywebviewready', wireDesktop);
 
-$('#granBtn').onclick = e => { e.stopPropagation(); $('#granMenu').classList.toggle('open'); };
-document.addEventListener('click', () => $('#granMenu').classList.remove('open'));
+/* ---------- menus ---------- */
+function toggleMenu(id) {
+  document.querySelectorAll('.menu.open').forEach(m => { if (m.id !== id) m.classList.remove('open'); });
+  $('#' + id).classList.toggle('open');
+}
+$('#periodBtn').onclick = e => { e.stopPropagation(); toggleMenu('periodMenu'); };
+$('#granBtn').onclick = e => { e.stopPropagation(); toggleMenu('granMenu'); };
+document.addEventListener('click', () => document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open')));
 $('#granMenu').querySelectorAll('button').forEach(b => b.onclick = () => {
   gran = b.dataset.g; $('#granLabel').textContent = b.textContent;
   $('#granMenu').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
@@ -448,7 +474,12 @@ $('#granMenu').querySelectorAll('button').forEach(b => b.onclick = () => {
 });
 let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { drawHero(); drawLeft(); }, 80); });
 
-(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+  selectPeriod(DATA.initial);
+  render();
+  wireDesktop();
+  if (DATA.notice) showToast(DATA.notice);
+});
 </script>
 </body>
 </html>

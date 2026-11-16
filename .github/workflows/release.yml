@@ -52,7 +52,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          gh release create "v${VERSION}" "dist/MoneyTalks-${VERSION}.dmg" \
+          # Same file name every release, so the README's download button can link to
+          # releases/latest/download/MoneyTalks.dmg. The version is in the label,
+          # the release title and the disk image's volume name.
+          cp "dist/MoneyTalks-${VERSION}.dmg" dist/MoneyTalks.dmg
+          gh release create "v${VERSION}" "dist/MoneyTalks.dmg#MoneyTalks ${VERSION} for macOS (Apple Silicon)" \
             --target "${GITHUB_SHA}" \
             --title "MoneyTalks ${VERSION}" \
             --generate-notes
